@@ -20,6 +20,7 @@ jobs:
       - run: uv add beautifulsoup4==4.13.4
       - run: uv add aiohttp==3.12.12
       - run: uv add requests==2.32.4
+      - run: uv add lxml==6.0.0
 
       - run: black --check .
       - run: ruff check .
