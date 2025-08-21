@@ -1,5 +1,5 @@
 import unittest
-from crawl import normalize_url, get_urls_from_html
+from crawl import normalize_url, get_urls_from_html, get_h1_from_html
 
 
 class TestCrawl(unittest.TestCase):
@@ -41,6 +41,30 @@ class TestCrawl(unittest.TestCase):
         for bad_input in [123, None, 3.14, ["list"], {"dict": "value"}]:
             with self.assertRaises(TypeError):
                 normalize_url(bad_input)
+
+    # Tests for the get_h1_from_html function
+    def test_GET_H1_FROM_HTML_basic(self):
+        input_body = "<html><body><h1>Test Title</h1></body></html>"
+
+        actual = get_h1_from_html(input_body)
+        expected = "Test Title"
+        self.assertEqual(actual, expected)
+
+    def test_GET_H1_FROM_HTML_get_first_paragraph_from_html_main_priority(self):
+        input_body = """<html><body>
+            <p>Outside paragraph.</p>
+            <main>
+                <p>Main paragraph.</p>
+            </main>
+        </body></html>"""
+
+        actual = get_h1_from_html(input_body)
+        expected = "Main paragraph."
+        self.assertEqual(actual, expected)
+
+    def test_GET_H1_FROM_HTML_empty_string(self):
+        with self.assertRaises(ValueError):
+            get_h1_from_html("")
 
     # Tests for the get_urls_from_html function
     def test_GET_URLS_FROM_HTML_base_functionality(self):
