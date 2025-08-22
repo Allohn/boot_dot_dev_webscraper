@@ -2,6 +2,7 @@ from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
 import requests
 from requests.exceptions import HTTPError
+from typing import Any
 
 # Sample page source
 sample_html = """<!DOCTYPE HTML><html><body lang="en" dir="ltr"><div id="wrapper" class="hfeed">
@@ -138,6 +139,96 @@ def get_urls_from_html(html: str, base_url: str) -> list[str]:
     absolute_url_list = list(set(absolute_url_list))
 
     return absolute_url_list
+
+
+def extract_page_data(html: str, page_url: str) -> dict[str, Any]:
+    """
+    Takes in a url, and a html source, and turn them into a dictionary of the header, first paragraph, external links, and image links
+
+    Args:
+        html (str): A html source
+        page_url (str): The url from which the html source was taken
+
+    Returns:
+        key_dict (dict):
+    """
+
+    # Suite of basic input checks
+    if not (isinstance(page_url, str) and (isinstance(html, str))):
+        raise TypeError("Expected a string input")
+    if not page_url or not html:
+        raise ValueError("An empty string is not a url")
+
+    soup = BeautifulSoup(html, "lxml")  # Initialize the BS object with the lxml parser
+
+    anchor_list = []
+    href_list = []
+
+    anchor_list = soup.find_all("a")  # List of all anchor blocks
+    for link in anchor_list:
+        href_list.append(link.get("href"))
+
+    # Check to make sure everything is absolute
+    absolute_url_list = []
+    for href in href_list:
+        url_object = urlparse(href)
+
+        # Split up the url into the network location and the path
+        path = url_object.path
+
+        absolute_url_list.append(urljoin(page_url, path))
+
+    # Check for duplicates
+    absolute_url_list = list(set(absolute_url_list))
+    links = absolute_url_list
+
+    paragraph = ""
+    header = ""
+
+    if soup.find("p"):  # First check if the main tag is found
+        p_text = soup.find("p")
+        paragraph = p_text.get_text(strip=True)
+
+    if soup.find("h1"):
+        head = soup.find("h1")
+        header = head.get_text(strip=True)
+
+    image_list = soup.find_all("img")
+
+    image_link_list = []
+    for image in image_list:
+        image_link_list.append(image.get("src"))
+
+    # Check to make sure everything is absolute
+    absolute_image_link_list = []
+    for image_link in image_link_list:
+        image_link_object = urlparse(image_link)
+
+        # Split up the url into the network location and the path
+        image_scheme = image_link_object.scheme
+        image_netloc = image_link_object.netloc
+        image_path = image_link_object.path
+
+        if image_netloc == "":
+            absolute_image_link_list.append(urljoin(page_url, image_path))
+        else:
+            absolute_image_link_list.append(
+                image_scheme + "://" + image_netloc + image_path
+            )
+
+    # Check for duplicates
+    absolute_image_link_list = list(set(absolute_image_link_list))
+    images = absolute_image_link_list
+
+    key_dict = {
+        "url": page_url,
+        "h1": header,
+        "first_paragraph": paragraph,
+        "outgoing_links": links,
+        "image_urls": images,
+    }
+
+    return key_dict
 
 
 def get_html(url: str) -> str:

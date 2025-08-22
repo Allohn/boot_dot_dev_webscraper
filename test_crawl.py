@@ -1,9 +1,11 @@
 import unittest
-from crawl import normalize_url, get_urls_from_html, get_h1_from_html
+from crawl import normalize_url, get_urls_from_html, get_h1_from_html, extract_page_data
 
 
 class TestCrawl(unittest.TestCase):
+    ######################################################
     # Tests for the normalize_url() function in crawl.py
+    ######################################################
     def test_NORMALIZE_URL_base_functionality(self):
         input_url = "https://blog.boot.dev/path/"
 
@@ -42,7 +44,9 @@ class TestCrawl(unittest.TestCase):
             with self.assertRaises(TypeError):
                 normalize_url(bad_input)
 
+    ######################################################
     # Tests for the get_h1_from_html function
+    ######################################################
     def test_GET_H1_FROM_HTML_basic(self):
         input_body = "<html><body><h1>Test Title</h1></body></html>"
 
@@ -66,7 +70,47 @@ class TestCrawl(unittest.TestCase):
         with self.assertRaises(ValueError):
             get_h1_from_html("")
 
+    #######################################################
+    # Tests for extract_page_data_basic
+    #######################################################
+    def test_EXTRACT_PAGE_DATA_basic(self):
+        input_url = "https://blog.boot.dev"
+        input_body = """<html>
+                        <body>
+                        <h1>Test Title</h1>
+                        <p>This is the first paragraph.</p>
+                        <a href="/link1">Link 1</a>
+                        <img src="/image1.jpg" alt="Image 1">
+                        </body>
+                        </html>"""
+        actual = extract_page_data(input_body, input_url)
+        expected = {
+            "url": "https://blog.boot.dev",
+            "h1": "Test Title",
+            "first_paragraph": "This is the first paragraph.",
+            "outgoing_links": ["https://blog.boot.dev/link1"],
+            "image_urls": ["https://blog.boot.dev/image1.jpg"],
+        }
+        self.assertEqual(actual, expected)
+
+    def test_EXTRACT_PAGE_DATA_empty_string(self):
+        input_url = "https://blog.boot.dev"
+        input_body = "<html><body><A href='https://blog.boot.dev'><span>Boot.dev</span></a></body></html>"
+
+        with self.assertRaises(ValueError):
+            get_urls_from_html("", input_url)
+        with self.assertRaises(ValueError):
+            get_urls_from_html(input_body, "")
+
+    def test_EXTRACT_PAGE_DATA_wrong_type_input(self):
+        for bad_input1 in [123, None, 3.14, ["list"], {"dict": "value"}]:
+            for bad_input2 in [123, None, 3.14, ["list"], {"dict": "value"}]:
+                with self.assertRaises(TypeError):
+                    get_urls_from_html(bad_input1, bad_input2)
+
+    #######################################################
     # Tests for the get_urls_from_html function
+    #######################################################
     def test_GET_URLS_FROM_HTML_base_functionality(self):
         input_url = "http://www.ubuntu.com"
         sample_html = """<!DOCTYPE HTML><html><body lang="en" dir="ltr"><div id="wrapper" class="hfeed">
@@ -114,9 +158,12 @@ class TestCrawl(unittest.TestCase):
 
     def test_GET_URLS_FROM_HTML_empty_string(self):
         input_url = "https://blog.boot.dev"
+        input_body = "<html><body><A href='https://blog.boot.dev'><span>Boot.dev</span></a></body></html>"
 
         with self.assertRaises(ValueError):
             get_urls_from_html("", input_url)
+        with self.assertRaises(ValueError):
+            get_urls_from_html(input_body, "")
 
     def test_GET_URLS_FROM_HTML_wrong_type_input(self):
         for bad_input1 in [123, None, 3.14, ["list"], {"dict": "value"}]:
